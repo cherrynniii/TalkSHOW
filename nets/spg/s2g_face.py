@@ -38,6 +38,7 @@ def audio_chunking(audio: torch.Tensor, frame_rate: int = 30, chunk_size: int = 
     return audio
 
 
+# Raw audio를 입력 받아 latent_dim 차원의 고정된 임베딩(code)을 출력하는 오디오 전용 인코더
 class MeshtalkEncoder(nn.Module):
     def __init__(self, latent_dim: int = 128, model_name: str = 'audio_encoder'):
         """
@@ -46,15 +47,19 @@ class MeshtalkEncoder(nn.Module):
         """
         super().__init__()
 
+        # raw audio wave form(B, T, 16000) -> MelSpectrogram(B*T, 1, 80, F)
         self.melspec = ta.transforms.MelSpectrogram(
             sample_rate=16000, n_fft=2048, win_length=800, hop_length=160, n_mels=80
         )
 
         conv_len = 5
+        # mel spectrogram을 1D convolution으로 feature dimension을 80 -> 128로 바꾼다
         self.convert_dimensions = torch.nn.Conv1d(80, 128, kernel_size=conv_len)
         self.weights_init(self.convert_dimensions)
         self.receptive_field = conv_len
 
+        # 총 6개의 conv 레이어를 반복적으로 쌓는다 (dilation을 2, 4, 6, 2, 4, 6 순으로 -> receptive field 넓어짐)
+        # 시간 정보를 인코딩하는 핵심
         convs = []
         for i in range(6):
             dilation = 2 * (i % 3 + 1)
@@ -80,30 +85,33 @@ class MeshtalkEncoder(nn.Module):
         :return: code: B x T x latent_dim Tensor containing a latent audio code/embedding
         """
         B, T = audio.shape[0], audio.shape[1]
-        x = self.melspec(audio).squeeze(1)
+        x = self.melspec(audio).squeeze(1)      # shape: (B, T, 80, F)
+
+        # mel-spectrogram 값을 로그 스케일로 바꾼다
         x = torch.log(x.clamp(min=1e-10, max=None))
         if T == 1:
             x = x.unsqueeze(1)
 
         # Convert to the right dimensionality
         x = x.view(-1, x.shape[2], x.shape[3])
-        x = F.leaky_relu(self.convert_dimensions(x), .2)
+        x = F.leaky_relu(self.convert_dimensions(x), .2)    # 80 -> 128 차원
 
-        # Process stacks
+        # Process stacks (Dilated Conv Stack 통과)
         for conv in self.convs:
             x_ = F.leaky_relu(conv(x), .2)
-            if self.training:
+            if self.training:   # 학습 중인 경우 드롭 아웃 사용
                 x_ = F.dropout(x_, .2)
             l = (x.shape[2] - x_.shape[2]) // 2
-            x = (x[:, :, l:-l] + x_) / 2
+            x = (x[:, :, l:-l] + x_) / 2    # output과 input을 평균해서 residual 처럼 더함
 
-        x = torch.mean(x, dim=-1)
+        x = torch.mean(x, dim=-1)   # (B*T, 128)의 고정 길이 벡터로 만듦
         x = x.view(B, T, x.shape[-1])
         x = self.code(x)
 
-        return {"code": x}
+        return {"code": x}      # 이 코드는 이후 facial motion decoder로 전달 됨
 
 
+# 오디오 feature와 speaker identity 정보를 받아 motion decoder에 적합한 표현으로 가공
 class AudioEncoder(nn.Module):
     def __init__(self, in_dim, out_dim, identity=False, num_classes=0):
         super().__init__()
@@ -124,10 +132,11 @@ class AudioEncoder(nn.Module):
 
         spectrogram = spectrogram
         spectrogram = self.dropout(spectrogram)
+
         if self.identity:
             id = id.reshape(id.shape[0], -1, 1).repeat(1, 1, spectrogram.shape[2]).to(torch.float32)
             id = self.id_mlp(id)
-            spectrogram = torch.cat([spectrogram, id], dim=1)
+            spectrogram = torch.cat([spectrogram, id], dim=1)       # audio feature와 concat
         x1 = self.first_net(spectrogram)# .permute(0, 2, 1)
         if time_steps is not None:
             x1 = F.interpolate(x1, size=time_steps, align_corners=False, mode='linear')
@@ -168,7 +177,7 @@ class Generator(nn.Module):
             # wav2vec 2.0 weights initialization
             self.audio_encoder = Wav2Vec2Model.from_pretrained("facebook/wav2vec2-base-960h")  # "vitouphy/wav2vec2-xls-r-300m-phoneme""facebook/wav2vec2-base-960h"
             self.audio_encoder.feature_extractor._freeze_parameters()
-            self.audio_feature_map = nn.Linear(768, in_dim)
+            self.audio_feature_map = nn.Linear(768, in_dim)     # 768차원의 speech representation을 256차원으로 축소
         else:
             self.audio_encoder = AudioEncoder(in_dim=64, out_dim=out_dim)
 
@@ -179,6 +188,7 @@ class Generator(nn.Module):
         self.decoder = nn.ModuleList()
         self.final_out = nn.ModuleList()
 
+        # ConvNormRelu: TCN 역할
         self.decoder.append(nn.Sequential(
             ConvNormRelu(out_dim, 64, norm=norm),
             ConvNormRelu(64, 64, norm=norm),
@@ -193,6 +203,7 @@ class Generator(nn.Module):
         ))
         self.final_out.append(nn.Conv1d(out_dim, each_dim[3], 1, 1))
 
+    # in_spec: raw_audio, id: one-hot speaker identity
     def forward(self, in_spec, gt_poses=None, id=None, pre_state=None, time_steps=None):
         if self.training:
             time_steps = gt_poses.shape[1]

@@ -62,7 +62,7 @@ class GatedMaskedConv2d(nn.Module):
         if self.mask_type == 'A':
             self.make_causal()
 
-        h = self.class_cond_embedding(h)
+        h = self.class_cond_embedding(h.to(self.class_cond_embedding.weight.device))
         h_vert = self.vert_stack(x_v)
         h_vert = h_vert[:, :, :x_v.size(-2), :]
         out_v = self.gate(h_vert + h[:, :, None, None])

@@ -7,3 +7,5 @@ visualise/video
 .git
 /venv
 wandb
+none.pkl
+train_3d_wv2.pkl

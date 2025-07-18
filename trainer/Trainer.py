@@ -237,7 +237,7 @@ class Trainer():
         torch.save(state_dict, save_name)
 
     def train_epoch(self, epoch):
-        epoch_loss_dict = {} #最好是追踪每个epoch的loss变换
+        epoch_loss_dict = {}
         epoch_steps = 0
         if 'freeMo' in self.config.Model.model_name:
             for bat in zip(self.trans_loader, self.zero_loader):
@@ -274,6 +274,8 @@ class Trainer():
                         epoch_loss_dict[key] = loss_dict[key]
                 if self.global_steps % self.config.Log.print_every == 0:
                     self.print_func(epoch_loss_dict, epoch_steps)
+                    if self.args.use_wandb:
+                        wandb.log({key: loss_dict[key] for key in loss_dict}, step=self.global_steps)
 
     def train(self):
         logging.info('start_training')

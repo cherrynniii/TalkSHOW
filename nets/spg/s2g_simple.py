@@ -191,7 +191,7 @@ class Generator(nn.Module):
             수정 후: 디코더 4개 (jaw, body + eye, hands, expression)
         """
         decoder_configs = [
-            (64, each_dim[0]),
+            (out_dim, each_dim[0]),
             (out_dim, each_dim[1]),
             (out_dim, each_dim[2]),
             (out_dim, each_dim[3])
@@ -227,6 +227,7 @@ class Generator(nn.Module):
         out = []
 
         for i in range(self.decoder.__len__()):
+            # print("feature shape: ", feature.shape)
             mid = self.decoder[i](feature)
             mid = self.final_out[i](mid)
             out.append(mid)

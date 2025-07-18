@@ -6,3 +6,4 @@ visualise/video
 .idea
 .git
 /venv
+wandb

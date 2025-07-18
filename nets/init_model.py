@@ -8,6 +8,11 @@ def init_model(model_name, args, config):
             args,
             config,
         )
+    elif model_name == 's2g_simple':
+        generator = s2g_simple(
+            args,
+            config,
+        )
     elif model_name == 's2g_body_vq':
         generator = s2g_body_vq(
             args,

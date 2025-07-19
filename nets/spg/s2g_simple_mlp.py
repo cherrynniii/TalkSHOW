@@ -225,7 +225,19 @@ class Generator(nn.Module):
         # hidden_states = in_spec
 
         feature, _ = self.audio_middle(feature, id=id)  # 이 시점에서는 (B, C, T)
-        feature = feature.permute(0, 2, 1)  # 여기서 permute
+        # print("feature shape before interpolate: ", feature.shape) # 1, 256, 150
+
+        # # 시간 길이 보정 (interpolate는 마지막 차원을 size로 바꾸는 애)
+        # if feature.shape[1] != time_steps:
+        #     feature = F.interpolate(
+        #         feature,    # 1, 256, 150
+        #         size=time_steps,
+        #         mode='linear',
+        #         align_corners=False
+        #     )
+
+        # print("feature shape before permute: ", feature.shape)
+        feature = feature.permute(0, 2, 1)  # 여기서 permute (1, 150, 256)
 
         out = []
 
@@ -235,7 +247,9 @@ class Generator(nn.Module):
             mid = self.final_out[i](mid)
             out.append(mid)
 
-        out = torch.cat(out, dim=1)
-        out = out.transpose(1, 2)
+        # print("test1")
+        out = torch.cat(out, dim=2)
+        # out = out.transpose(1, 2)
+        # print("out: ", out.shape)
 
         return out, None

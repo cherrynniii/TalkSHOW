@@ -36,7 +36,8 @@
     "model_name": "s2g_simple",
     "AudioOpt": "SGD",
     "encoder_choice": "faceformer",
-    "gan": false
+    "gan": false,
+    "vq_path": "./experiments/2025-07-18-simple-face/ckpt-99.pth"
   },
   "DataLoader": {
     "batch_size": 1,

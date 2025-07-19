@@ -24,6 +24,8 @@ from data_utils.rotation_conversion import rotation_6d_to_matrix, matrix_to_axis
 from data_utils.lower_body import part2full, pred2poses, poses2pred, poses2poses
 from visualise.rendering import RenderTool
 
+import torchaudio
+
 global device
 device = 'cpu'
 
@@ -45,6 +47,11 @@ def init_model(model_name, model_path, args, config):
         )
     elif model_name == 's2g_LS3DCG':
         generator = LS3DCG(
+            args,
+            config,
+        )
+    elif model_name == 's2g_simple':
+        generator = s2g_simple(
             args,
             config,
         )

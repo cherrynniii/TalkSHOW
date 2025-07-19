@@ -226,7 +226,7 @@ class Generator(nn.Module):
 
         feature, _ = self.audio_middle(feature, id=id)  # 이 시점에서는 (B, C, T)
         feature = feature.permute(0, 2, 1)  # 여기서 permute
-        
+
         out = []
 
         for i in range(self.decoder.__len__()):

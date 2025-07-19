@@ -140,7 +140,7 @@ class AudioEncoder(nn.Module):
             x1 = F.interpolate(x1, size=time_steps, align_corners=False, mode='linear')
         # x1, _ = self.att(x1, x1, x1)
         # x1, hidden_state = self.grus(x1)
-        x1 = x1.permute(0, 2, 1)
+        # x1 = x1.permute(0, 2, 1)
         hidden_state=None
 
         return x1, hidden_state
@@ -224,8 +224,9 @@ class Generator(nn.Module):
 
         # hidden_states = in_spec
 
-        feature, _ = self.audio_middle(feature, id=id)
-
+        feature, _ = self.audio_middle(feature, id=id)  # 이 시점에서는 (B, C, T)
+        feature = feature.permute(0, 2, 1)  # 여기서 permute
+        
         out = []
 
         for i in range(self.decoder.__len__()):

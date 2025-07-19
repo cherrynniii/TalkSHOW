@@ -34,7 +34,7 @@ def init_model(model_name, args, config):
             config,
         )
     elif model_name == 's2g_simple_mlp':
-        generator = smplx_simple_mlp(
+        generator = s2g_simple_mlp(
             args,
             config,
         )

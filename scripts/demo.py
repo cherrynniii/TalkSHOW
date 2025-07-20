@@ -251,8 +251,8 @@ def main():
 
     config = load_JsonConfig(args.config_file)
 
-    model_name = "s2g_simple"
-    model_path = "./experiments/2025-07-18-simple-face/ckpt-99.pth"
+    model_name = "s2g_simple_transformer"
+    model_path = "./experiments/2025-07-20-simple_transformer-face/ckpt-99.pth"
     # body_model_name = args.body_model_name
     # body_model_path = args.body_model_path
     smplx_path = './visualise/'

@@ -37,7 +37,7 @@
     "AudioOpt": "SGD",
     "encoder_choice": "faceformer",
     "gan": false,
-    "vq_path": "./experiments/2025-07-18-simple-face/ckpt-99.pth"
+    "vq_path": "./experiments/2025-07-19-simple_mlp-face/ckpt-99.pth"
   },
   "DataLoader": {
     "batch_size": 1,

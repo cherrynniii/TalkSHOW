@@ -160,6 +160,8 @@ class PositionalEncoding(nn.Module):
 
     def forward(self, x):
         # x: (B, T, D)
+        # print("x: ", x.shape)
+        # print("pe: ", self.pe[:, :x.size(1)].to(x.device).shape)
         x = x + self.pe[:, :x.size(1)].to(x.device)
         return x
 
@@ -181,12 +183,12 @@ class Generator(nn.Module):
         self.gen_length = n_poses
         self.identity = identity
 
-        # positional encoding 초기화
-        self.pos_encoding = PositionalEncoding(d_model=out_dim, max_len=1000)
-
         norm = 'ln'
         in_dim = 256
         out_dim = 256
+
+        # positional encoding 초기화
+        self.pos_encoding = PositionalEncoding(d_model=out_dim, max_len=1000)
 
         self.encoder_choice = 'faceformer'
 
@@ -258,12 +260,13 @@ class Generator(nn.Module):
         memory = self.pos_encoding(memory)
 
         # 디코더 입력 준비
-        tgt = gt_poses[:, :, -1]
+        self.tgt_proj = nn.Linear(265, 256).to(gt_poses.device)
+        tgt = self.tgt_proj(gt_poses)
         tgt = self.pos_encoding(tgt)
 
         # causal mask 준비
-        seq_len = feature.size(1)
-        causal_mask = self._generate_causal_mask(seq_len, feature.device)
+        seq_len = tgt.size(1)
+        causal_mask = self._generate_causal_mask(seq_len, tgt.device)
 
         out = []
 
@@ -273,9 +276,7 @@ class Generator(nn.Module):
             mid = self.final_out[i](transout)
             out.append(mid)
 
-        # print("test1")
         out = torch.cat(out, dim=2)
         # out = out.transpose(1, 2)
-        # print("out: ", out.shape)
 
         return out, None

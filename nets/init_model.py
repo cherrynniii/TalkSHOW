@@ -38,6 +38,11 @@ def init_model(model_name, args, config):
             args,
             config,
         )
+    elif model_name == 's2g_simple_transformer':
+        generator = s2g_simple_transformer(
+            args,
+            config
+        )
     else:
         raise ValueError
     return generator

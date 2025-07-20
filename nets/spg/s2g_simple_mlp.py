@@ -247,7 +247,7 @@ class Generator(nn.Module):
             mid = self.final_out[i](mid)
             out.append(mid)
 
-        # print("test1")
+        #print("test2")
         out = torch.cat(out, dim=2)
         # out = out.transpose(1, 2)
         # print("out: ", out.shape)

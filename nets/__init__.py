@@ -6,5 +6,6 @@ from .body_ae import TrainWrapper as s2g_body_ae
 from .LS3DCG import TrainWrapper as LS3DCG
 from .smplx_simple_mlp import TrainWrapper as s2g_simple_mlp
 from .base import TrainWrapperBaseClass
+from .smplx_simple_transformer import TrainWrapper as s2g_simple_transformer
 
 from .utils import normalize, denormalize

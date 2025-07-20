@@ -6,7 +6,7 @@ sys.path.append(os.getcwd())
 from nets.layers import *
 from nets.base import TrainWrapperBaseClass
 # from nets.spg.faceformer import Faceformer
-from nets.spg.s2g_simple_mlp import Generator as s2g_simple_transformer
+from nets.spg.s2g_simple_transformer import Generator as s2g_simple_transformer
 from losses import KeypointLoss
 from nets.utils import denormalize
 from data_utils import get_mfcc_psf, get_mfcc_psf_min, get_mfcc_ta

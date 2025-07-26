@@ -18,12 +18,10 @@ import logging
 import time
 import shutil
 
+import wandb
+
 def prn_obj(obj):
     print('\n'.join(['%s:%s' % item for item in obj.__dict__.items()]))
-
-
-
-
 
 class Trainer():
     def __init__(self) -> None:
@@ -69,6 +67,15 @@ class Trainer():
         shutil.copy(self.args.config_file, self.train_dir)
 
         self.generator = init_model(self.config.Model.model_name, self.args, self.config)
+
+        # weights & biases
+        if self.args.use_wandb:
+            wandb.init(
+                project="TalkSHOW",
+                name=self.args.exp_name,
+                config=self.config.__dict__,
+            )
+
         self.init_dataloader()
         self.start_epoch = 0
         self.global_steps = 0
@@ -230,7 +237,7 @@ class Trainer():
         torch.save(state_dict, save_name)
 
     def train_epoch(self, epoch):
-        epoch_loss_dict = {} #最好是追踪每个epoch的loss变换
+        epoch_loss_dict = {}
         epoch_steps = 0
         if 'freeMo' in self.config.Model.model_name:
             for bat in zip(self.trans_loader, self.zero_loader):
@@ -247,6 +254,8 @@ class Trainer():
 
                 if self.global_steps % self.config.Log.print_every == 0:
                     self.print_func(epoch_loss_dict, epoch_steps)
+                    if self.args.use_wandb:
+                        wandb.log({key: loss_dict[key] for key in loss_dict}, step=self.global_steps)
         else:
             # self.config.Model.model_name==smplx_S2G
             for bat in self.train_loader:
@@ -265,6 +274,8 @@ class Trainer():
                         epoch_loss_dict[key] = loss_dict[key]
                 if self.global_steps % self.config.Log.print_every == 0:
                     self.print_func(epoch_loss_dict, epoch_steps)
+                    if self.args.use_wandb:
+                        wandb.log({key: loss_dict[key] for key in loss_dict}, step=self.global_steps)
 
     def train(self):
         logging.info('start_training')

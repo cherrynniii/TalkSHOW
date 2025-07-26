@@ -6,3 +6,32 @@ visualise/video
 .idea
 .git
 /venv
+wandb
+none.pkl
+train_3d_wv2.pkl
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+
+# JSON config (필요하다면)
+# config/*.json
+
+# Pickle files (보통 모델 저장이나 중간 결과물)
+*.pkl
+
+# Shell scripts (공유할 필요 없으면)
+*.sh
+
+# VSCode, PyCharm 등의 IDE 설정 파일 (필요하다면)
+.vscode/
+.idea/
+
+# Jupyter Notebook 체크포인트
+.ipynb_checkpoints/
+
+# 시스템 파일
+.DS_Store
+
+# 기타 캐시
+*.log

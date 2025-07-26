@@ -29,9 +29,12 @@ def parse_args():
     parser.add_argument('--whole_body', action='store_true')
     parser.add_argument('--num_sample', default=1, type=int)
     parser.add_argument('--face_model_name', default='s2g_face', type=str)
-    parser.add_argument('--face_model_path', default='./experiments/2022-10-15-smplx_S2G-face-3d/ckpt-99.pth', type=str)
+    parser.add_argument('--face_model_path', default='./experiments/2025-07-25-face-face/ckpt-99.pth', type=str)
     parser.add_argument('--body_model_name', default='s2g_body_pixel', type=str)
     parser.add_argument('--body_model_path', default='./experiments/2022-11-02-smplx_S2G-body-pixel-3d/ckpt-99.pth', type=str)
     parser.add_argument('--infer', action='store_true')
 
+    # for weights and biases
+    parser.add_argument('--use_wandb', action='store_true')
+    
     return parser

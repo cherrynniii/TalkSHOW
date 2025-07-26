@@ -21,6 +21,8 @@ from data_utils.get_j import get_joints
 import torch
 from torch.utils import data
 
+import wandb
+
 
 def init_model(model_name, model_path, args, config):
     if model_name == 's2g_face':
@@ -158,6 +160,10 @@ def test(test_loader, generator, smplx_model, args, config):
         for key in loss_dict.keys():
             loss_dict[key] = loss_dict[key] / i
             print(key + '=' + str(loss_dict[key].item()))
+        for key in loss_dict.keys():
+            loss_dict[key] = loss_dict[key] / i
+            print(key + '=' + str(loss_dict[key].item()))
+            wandb.log({key: loss_dict[key].item()})  # ✅ wandb 로깅
 
 
 def main():
@@ -167,6 +173,12 @@ def main():
     torch.cuda.set_device(device)
 
     config = load_JsonConfig(args.config_file)
+
+    wandb.init(
+        project="TalkSHOW-Test",
+        name=args.exp_name,
+        config=config.__dict__
+    )
 
     os.environ['smplx_npz_path'] = config.smplx_npz_path
     os.environ['extra_joint_path'] = config.extra_joint_path

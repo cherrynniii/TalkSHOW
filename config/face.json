@@ -46,8 +46,8 @@
     "epochs": 100,
     "max_gradient_norm": 5,
     "learning_rate": {
-      "generator_learning_rate": 1e-4,
-      "discriminator_learning_rate": 1e-4
+      "generator_learning_rate": 1e-3,
+      "discriminator_learning_rate": 1e-3
     }
   },
   "Log": {

@@ -24,52 +24,27 @@ from data_utils.rotation_conversion import rotation_6d_to_matrix, matrix_to_axis
 from data_utils.lower_body import part2full, pred2poses, poses2pred, poses2poses
 from visualise.rendering import RenderTool
 
-import torchaudio
-
 global device
 device = 'cpu'
 
 def init_model(model_name, model_path, args, config):
-    print("=================")
     if model_name == 's2g_face':
-        print("Calling s2g_face!!!")
         generator = s2g_face(
             args,
             config,
         )
     elif model_name == 's2g_body_vq':
-        print("Calling vq!!!")
         generator = s2g_body_vq(
             args,
             config,
         )
     elif model_name == 's2g_body_pixel':
-        print("Calling s2g_body_pixel!!!")
         generator = s2g_body_pixel(
             args,
             config,
         )
     elif model_name == 's2g_LS3DCG':
-        print("Calling LS!!!")
         generator = LS3DCG(
-            args,
-            config,
-        )
-    elif model_name == 's2g_simple':
-        print("Calling s2g_simple!!!=========================================")
-        generator = s2g_simple(
-            args,
-            config,
-        )
-    elif model_name == 's2g_simple_mlp':
-        print("Calling mlp!!!")
-        generator = s2g_simple_mlp(
-            args,
-            config,
-        )
-    elif model_name == 's2g_simple_transformer':
-        print("Calling transformer!!!")
-        generator = s2g_simple_transformer(
             args,
             config,
         )
@@ -180,65 +155,95 @@ def get_vertices(smplx_model, betas, result_list, exp, require_pose=False):
 global_orient = torch.tensor([3.0747, -0.0158, -0.0152])
 
 
-def infer(generator, smplx_model, rendertool, config, args):
+def infer(g_body, g_face, smplx_model, rendertool, config, args):
     betas = torch.zeros([1, 300], dtype=torch.float64).to(device)
     am = Wav2Vec2Processor.from_pretrained("vitouphy/wav2vec2-xls-r-300m-phoneme")
     am_sr = 16000
     num_sample = args.num_sample
     cur_wav_file = args.audio_file
-    id = torch.tensor([args.id], device=device)
+    id = args.id
     face = args.only_face
     stand = args.stand
- 
     if face:
         body_static = torch.zeros([1, 162], device=device)
-        body_static[:, 6:9] = global_orient.reshape(1, 3).repeat(body_static.shape[0], 1)
- 
+        body_static[:, 6:9] = torch.tensor([3.0747, -0.0158, -0.0152]).reshape(1, 3).repeat(body_static.shape[0], 1)
+
     result_list = []
- 
-    for _ in range(num_sample):
-        pred = generator.infer_on_audio(
-            cur_wav_file,
-            initial_pose=None,
-            norm_stats=None,
-            id=id,
-            fps=30,
-            w_pre=False,
-            frame=config.Data.pose.generate_length
-        )
-        print("pred shape ", pred.shape)
-        pred = torch.tensor(pred).squeeze().to(device)
- 
-        # convert_to_6d이면 회전 변환 처리
+
+    pred_face = g_face.infer_on_audio(cur_wav_file,
+                                      initial_pose=None,
+                                      norm_stats=None,
+                                      w_pre=False,
+                                      # id=id,
+                                      frame=None,
+                                      am=am,
+                                      am_sr=am_sr
+                                      )
+    pred_face = torch.tensor(pred_face).squeeze().to(device)
+    # pred_face = torch.zeros([gt.shape[0], 105])
+
+    if config.Data.pose.convert_to_6d:
+        pred_jaw = pred_face[:, :6].reshape(pred_face.shape[0], -1, 6)
+        pred_jaw = matrix_to_axis_angle(rotation_6d_to_matrix(pred_jaw)).reshape(pred_face.shape[0], -1)
+        pred_face = pred_face[:, 6:]
+    else:
+        pred_jaw = pred_face[:, :3]
+        pred_face = pred_face[:, 3:]
+
+    id = torch.tensor([id], device=device)
+
+    for i in range(num_sample):
+        pred_res = g_body.infer_on_audio(cur_wav_file,
+                                         initial_pose=None,
+                                         norm_stats=None,
+                                         txgfile=None,
+                                         id=id,
+                                         var=None,
+                                         fps=30,
+                                         w_pre=False
+                                         )
+        pred = torch.tensor(pred_res).squeeze().to(device)
+
+        if pred.shape[0] < pred_face.shape[0]:
+            repeat_frame = pred[-1].unsqueeze(dim=0).repeat(pred_face.shape[0] - pred.shape[0], 1)
+            pred = torch.cat([pred, repeat_frame], dim=0)
+        else:
+            pred = pred[:pred_face.shape[0], :]
+
+        body_or_face = False
+        if pred.shape[1] < 275:
+            body_or_face = True
         if config.Data.pose.convert_to_6d:
             pred = pred.reshape(pred.shape[0], -1, 6)
             pred = matrix_to_axis_angle(rotation_6d_to_matrix(pred))
             pred = pred.reshape(pred.shape[0], -1)
- 
-        # LS3DCG 모델은 파트 순서 재배열 필요
-        # if config.Model.model_name == 's2g_LS3DCG':
-        #     pred = torch.cat([pred[:, :3], pred[:, 103:], pred[:, 3:103]], dim=-1)
- 
-        # 포스트 프로세싱: part2full
+
+        if config.Model.model_name == 's2g_LS3DCG':
+            pred = torch.cat([pred[:, :3], pred[:, 103:], pred[:, 3:103]], dim=-1)
+        else:
+            pred = torch.cat([pred_jaw, pred, pred_face], dim=-1)
+
+        # pred[:, 9:12] = global_orient
         pred = part2full(pred, stand)
- 
         if face:
-            # face만 렌더링할 경우: 나머지 부위는 고정된 static
             pred = torch.cat([pred[:, :3], body_static.repeat(pred.shape[0], 1), pred[:, -100:]], dim=-1)
- 
+        # result_list[0] = poses2pred(result_list[0], stand)
+        # if gt_0 is None:
+        #     gt_0 = gt
+        # pred = pred2poses(pred, gt_0)
+        # result_list[0] = poses2poses(result_list[0], gt_0)
+
         result_list.append(pred)
- 
-    # SMPLX 모델로 3D vertex 생성
+
+
     vertices_list, _ = get_vertices(smplx_model, betas, result_list, config.Data.pose.expression)
- 
-    # 결과 저장
+
     result_list = [res.to('cpu') for res in result_list]
-    dict = np.concatenate(result_list, axis=0)
+    dict = np.concatenate(result_list[:], axis=0)
     file_name = 'visualise/video/' + config.Log.name + '/' + \
                 cur_wav_file.split('\\')[-1].split('.')[-2].split('/')[-1]
     np.save(file_name, dict)
- 
-    # 렌더링
+
     rendertool._render_sequences(cur_wav_file, vertices_list, stand=stand, face=face, whole_body=args.whole_body)
 
 
@@ -251,10 +256,10 @@ def main():
 
     config = load_JsonConfig(args.config_file)
 
-    model_name = "s2g_simple_transformer"
-    model_path = "./experiments/2025-07-20-simple_transformer-face/ckpt-99.pth"
-    # body_model_name = args.body_model_name
-    # body_model_path = args.body_model_path
+    face_model_name = args.face_model_name
+    face_model_path = args.face_model_path
+    body_model_name = args.body_model_name
+    body_model_path = args.body_model_path
     smplx_path = './visualise/'
 
     os.environ['smplx_npz_path'] = config.smplx_npz_path
@@ -262,9 +267,9 @@ def main():
     os.environ['j14_regressor_path'] = config.j14_regressor_path
 
     print('init model...')
-    # generator = init_model(body_model_name, body_model_path, args, config)
+    generator = init_model(body_model_name, body_model_path, args, config)
     generator2 = None
-    generator = init_model(model_name, model_path, args, config)
+    generator_face = init_model(face_model_name, face_model_path, args, config)
 
     print('init smlpx model...')
     dtype = torch.float64
@@ -291,7 +296,7 @@ def main():
     print('init rendertool...')
     rendertool = RenderTool('visualise/video/' + config.Log.name)
 
-    infer(generator, smplx_model, rendertool, config, args)
+    infer(generator, generator_face, smplx_model, rendertool, config, args)
 
 
 if __name__ == '__main__':

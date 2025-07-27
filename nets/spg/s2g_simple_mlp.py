@@ -218,14 +218,16 @@ class Generator(nn.Module):
             feature = self.audio_encoder(in_spec.unsqueeze(0))["code"].transpose(1, 2)
         elif self.encoder_choice == 'faceformer':
             hidden_states = self.audio_encoder(in_spec.reshape(in_spec.shape[0], -1), frame_num=time_steps).last_hidden_state
+            print("hidden_states: ", hidden_states.shape)
             feature = self.audio_feature_map(hidden_states).transpose(1, 2)
+            print("feature map: ", feature.shape)
         else:
             feature, hidden_state = self.audio_encoder(in_spec, pre_state, time_steps=time_steps)
 
         # hidden_states = in_spec
 
         feature, _ = self.audio_middle(feature, id=id)  # 이 시점에서는 (B, C, T)
-        # print("feature shape before interpolate: ", feature.shape) # 1, 256, 150
+        print("feature shape before interpolate: ", feature.shape)
 
         # # 시간 길이 보정 (interpolate는 마지막 차원을 size로 바꾸는 애)
         # if feature.shape[1] != time_steps:
@@ -237,7 +239,8 @@ class Generator(nn.Module):
         #     )
 
         # print("feature shape before permute: ", feature.shape)
-        feature = feature.permute(0, 2, 1)  # 여기서 permute (1, 150, 256)
+        feature = feature.permute(0, 2, 1)
+        print("feature: ", feature.shape)
 
         out = []
 
@@ -245,6 +248,7 @@ class Generator(nn.Module):
             # print("feature shape: ", feature.shape)
             mid = self.decoder[i](feature)
             mid = self.final_out[i](mid)
+            print(mid.shape)
             out.append(mid)
 
         #print("test2")

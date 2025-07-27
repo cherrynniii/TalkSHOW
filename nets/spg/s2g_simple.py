@@ -37,6 +37,7 @@ def audio_chunking(audio: torch.Tensor, frame_rate: int = 30, chunk_size: int = 
 
 
 # Raw audio를 입력 받아 latent_dim 차원의 고정된 임베딩(code)을 출력하는 오디오 전용 인코더
+""" 현재 코드 상 쓰고있지 않다 """
 class MeshtalkEncoder(nn.Module):
     def __init__(self, latent_dim: int = 128, model_name: str = 'audio_encoder'):
         """
@@ -103,7 +104,7 @@ class MeshtalkEncoder(nn.Module):
             x = (x[:, :, l:-l] + x_) / 2    # output과 input을 평균해서 residual 처럼 더함
 
         x = torch.mean(x, dim=-1)   # (B*T, 128)의 고정 길이 벡터로 만듦
-        x = x.view(B, T, x.shape[-1])
+        x = x.view(B, T, x.shape[-1])   # (B, T, 128)
         x = self.code(x)
 
         return {"code": x}      # 이 코드는 이후 facial motion decoder로 전달 됨
@@ -129,13 +130,16 @@ class AudioEncoder(nn.Module):
     def forward(self, spectrogram, pre_state=None, id=None, time_steps=None):
 
         spectrogram = spectrogram
+        # print("1 -> ", spectrogram.shape)
         spectrogram = self.dropout(spectrogram)
 
         if self.identity:
             id = id.reshape(id.shape[0], -1, 1).repeat(1, 1, spectrogram.shape[2]).to(torch.float32)
             id = self.id_mlp(id)
             spectrogram = torch.cat([spectrogram, id], dim=1)       # audio feature와 concat
+            # print("2 -> ", spectrogram.shape)
         x1 = self.first_net(spectrogram)# .permute(0, 2, 1)
+        # print("3 -> ", x1.shape)
         if time_steps is not None:
             x1 = F.interpolate(x1, size=time_steps, align_corners=False, mode='linear')
         # x1, _ = self.att(x1, x1, x1)
@@ -190,8 +194,16 @@ class Generator(nn.Module):
             수정 전: 디코더 2개 (jaw, expressions)
             수정 후: 디코더 4개 (jaw, body + eye, hands, expression)
         """
+
+        # ConvNormRelu: TCN 역할
+        self.decoder.append(nn.Sequential(
+            ConvNormRelu(out_dim, 64, norm=norm),
+            ConvNormRelu(64, 64, norm=norm),
+            ConvNormRelu(64, 64, norm=norm),
+        ))
+        self.final_out.append(nn.Conv1d(64, each_dim[0], 1, 1))
+        
         decoder_configs = [
-            (out_dim, each_dim[0]),
             (out_dim, each_dim[1]),
             (out_dim, each_dim[2]),
             (out_dim, each_dim[3])
@@ -207,6 +219,7 @@ class Generator(nn.Module):
 
     # in_spec: raw_audio, id: one-hot speaker identity
     def forward(self, in_spec, gt_poses=None, id=None, pre_state=None, time_steps=None):
+        # print("1 in_spec: ", in_spec.shape)
         if self.training:
             time_steps = gt_poses.shape[1]
 
@@ -216,24 +229,30 @@ class Generator(nn.Module):
             feature = self.audio_encoder(in_spec.unsqueeze(0))["code"].transpose(1, 2)
         elif self.encoder_choice == 'faceformer':
             hidden_states = self.audio_encoder(in_spec.reshape(in_spec.shape[0], -1), frame_num=time_steps).last_hidden_state
+            # print("1.5 hidden_states: ", hidden_states.shape)
             feature = self.audio_feature_map(hidden_states).transpose(1, 2)
+            # print("2 feature: ", feature.shape)
         else:
             feature, hidden_state = self.audio_encoder(in_spec, pre_state, time_steps=time_steps)
 
         # hidden_states = in_spec
 
         feature, _ = self.audio_middle(feature, id=id)
+        # print("3 feature: ", feature.shape)
 
         out = []
 
         for i in range(self.decoder.__len__()):
             # print("feature shape: ", feature.shape)
             mid = self.decoder[i](feature)
+            # print("5 mid: ", mid.shape)
             mid = self.final_out[i](mid)
+            # print("6 mid: ", mid.shape)
             out.append(mid)
 
         out = torch.cat(out, dim=1)
         out = out.transpose(1, 2)
+        # print("7 out: ", out.shape)
 
         return out, None
 

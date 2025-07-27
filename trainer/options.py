@@ -33,6 +33,7 @@ def parse_args():
     parser.add_argument('--body_model_name', default='s2g_body_pixel', type=str)
     parser.add_argument('--body_model_path', default='./experiments/2022-11-02-smplx_S2G-body-pixel-3d/ckpt-99.pth', type=str)
     parser.add_argument('--infer', action='store_true')
+    parser.add_argument('--model_path', type=str)
 
     # for weights and biases
     parser.add_argument('--use_wandb', action='store_true')

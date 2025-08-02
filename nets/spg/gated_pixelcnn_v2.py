@@ -68,31 +68,45 @@ class GatedMaskedConv2d(nn.Module):
 
     # x_v: vertical 입력, x_h: horizontal 입력, h: 클래스 레이블
     def forward(self, x_v, x_h, h):
+        print("==========GatedMAskedConv2d==========")
         # 마스크 A일 때는 현재 위치보다 앞에 있는 정보만 보게끔 마스킹
         if self.mask_type == 'A':
             self.make_causal()
 
+        print("h: ", h.shape)
         h = self.class_cond_embedding(h.to(self.class_cond_embedding.weight.device))    # 클래스 조건 임베딩
+        print("h: ", h.shape)
         h_vert = self.vert_stack(x_v)   # vertical 처리
+        print("h_vert: ", h_vert.shape)
         h_vert = h_vert[:, :, :x_v.size(-2), :]     # 크기 맞춰줌
+        print("h_vert: ", h_vert.shape)
         out_v = self.gate(h_vert + h[:, :, None, None])     # 조건 정보 더하고 게이팅
+        print("out_v: ", out_v.shape)
 
         # horizontal 처리
         if self.bh_model:
             h_horiz = self.horiz_stack(x_h)
+            print("h_vert: ", h_vert.shape)
             h_horiz = h_horiz[:, :, :, :x_h.size(-1)]
+            print("h_vert: ", h_vert.shape)
             v2h = self.vert_to_horiz(h_vert)    # vertical 정보를 반영해 전달
+            print("v2h: ", v2h.shape)
 
             out = self.gate(v2h + h_horiz + h[:, :, None, None])
+            print("out: ", out.shape)
             if self.residual:
                 out_h = self.horiz_resid(out) + x_h
+                print("out_h: ", out_h.shape)
             else:
                 out_h = self.horiz_resid(out)
+                print("out_h: ", out_h.shape)
         else:
             if self.residual:
                 out_v = self.horiz_resid(out_v) + x_v
+                print("out_v: ", out_v.shape)
             else:
                 out_v = self.horiz_resid(out_v)
+                print("out_v: ", out_v.shape)
             out_h = out_v
 
         return out_v, out_h

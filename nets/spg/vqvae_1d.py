@@ -25,12 +25,20 @@ class AudioEncoder(nn.Module):
         self._enc_3 = Res_CNR_Stack(self._num_hiddens, self._num_residual_layers, leaky=True)
 
     def forward(self, x, frame_num=0):
+        # print("========AudioEncoder==========")
+        # print("[TEST] AudioEncoder x shape 1: ", x.shape)
         h = self.project(x)
+        # ("[TEST] AudioEncoder x shape 2: ", x.shape)
         h = self._enc_1(h)
+        # ("[TEST] AudioEncoder x shape 3: ", x.shape)
         h = self._down_1(h)
+        # ("[TEST] AudioEncoder x shape 4: ", x.shape)
         h = self._enc_2(h)
+        # ("[TEST] AudioEncoder x shape 5: ", x.shape)
         h = self._down_2(h)
+        # ("[TEST] AudioEncoder x shape 6: ", x.shape)
         h = self._enc_3(h)
+        # ("[TEST] AudioEncoder x shape 7: ", x.shape)
         return h
 
 
@@ -53,13 +61,22 @@ class Wav2VecEncoder(nn.Module):
         self._enc_3 = Res_CNR_Stack(self._num_hiddens, self._num_residual_layers, leaky=True)
 
     def forward(self, x, frame_num):
+        # print("========Wav2VecEncoder==========")
+        # print("[TEST] Wav2VecEncoder x shape 1: ", x.shape)
         h = self.audio_encoder(x.squeeze(), frame_num=frame_num).last_hidden_state.transpose(1, 2)
+        # print("[TEST] Wav2VecEncoder h shape 2: ", h.shape)
         h = self.project(h)
+        # print("[TEST] Wav2VecEncoder h shape 3: ", h.shape)
         h = self._enc_1(h)
+        # print("[TEST] Wav2VecEncoder h shape 4: ", h.shape)
         h = self._down_1(h)
+        # print("[TEST] Wav2VecEncoder h shape 5: ", h.shape)
         h = self._enc_2(h)
+        # print("[TEST] Wav2VecEncoder h shape 6: ", h.shape)
         h = self._down_2(h)
+        # print("[TEST] Wav2VecEncoder h shape 7: ", h.shape)
         h = self._enc_3(h)
+        # print("[TEST] Wav2VecEncoder h shape 8: ", h.shape)
         return h
 
 
@@ -82,13 +99,22 @@ class Encoder(nn.Module):
         self.pre_vq_conv = nn.Conv1d(self._num_hiddens, embedding_dim, 1, 1)
 
     def forward(self, x):
+        # print("========Encoder==========")
+        # print("[TEST] Encoder x shape 1: ", x.shape)
         h = self.project(x)
+        # print("[TEST] Encoder x shape 2: ", x.shape)
         h = self._enc_1(h)
+        # print("[TEST] Encoder x shape 3: ", x.shape)
         h = self._down_1(h)
+        # print("[TEST] Encoder x shape 4: ", x.shape)
         h = self._enc_2(h)
+        # print("[TEST] Encoder x shape 5: ", x.shape)
         h = self._down_2(h)
+        # print("[TEST] Encoder x shape 6: ", x.shape)
         h = self._enc_3(h)
+        # print("[TEST] Encoder x shape 7: ", x.shape)
         h = self.pre_vq_conv(h)
+        # print("[TEST] Encoder x shape 8: ", x.shape)
         return h
 
 

@@ -37,7 +37,9 @@ class CasualCT(nn.Module):
             self.relu = nn.ReLU()
 
     def forward(self, x, **kwargs):
+        print("[TEST] CT x shape: ", x.shape)
         out = self.norm(self.dropout(self.conv(x)))
+        print("[TEST] CT out shape: ", out.shape)
         return self.relu(out)
 
 
@@ -74,6 +76,7 @@ class CasualConv(nn.Module):
             self.relu = nn.ReLU()
 
     def forward(self, x, pre_state=None):
+        # print("[TEST] CasualConv x shape: ", x.shape)
         if not self.downsample:
             if pre_state is not None:
                 x = torch.cat([pre_state, x], dim=-1)
@@ -81,6 +84,7 @@ class CasualConv(nn.Module):
                 zeros = torch.zeros([x.shape[0], x.shape[1], 1], device=x.device)
                 x = torch.cat([zeros, x], dim=-1)
         out = self.norm(self.dropout(self.conv(x)))
+        # print("[TEST] CasualConv out shape: ", out.shape)
         return self.relu(out)
 
 
@@ -165,10 +169,12 @@ class ConvNormRelu(nn.Module):
             self.relu = nn.ReLU()
 
     def forward(self, x, **kwargs):
+        # print("[TEST] ConvNormRelu x shape: ", x.shape)
         out = self.norm(self.dropout(self.conv(x)))
         if self.residual:
             residual = self.residual_layer(x)
             out += residual
+        # print("[TEST] ConvNormRelu out shape: ", out.shape)
         return self.relu(out)
 
 
@@ -203,12 +209,15 @@ class Res_CNR_Stack(nn.Module):
         self.relu = nn.ReLU()
 
     def forward(self, x, pre_state=None):
+        # print("[TEST] Res_CNR_Stack x shape: ", x.shape)
         # cur_state = []
         h = x
         for i in range(self._layers.__len__()):
             # cur_state.append(h[..., -1:])
             h = self._layers[i](h, pre_state=pre_state[i] if pre_state is not None else None)
         h = self.norm(self.conv(h))
+        # print("[TEST] Res_CNR_Stack x shape2: ", x.shape)
+        # print("[TEST] Res_CNR_Stack h shape: ", h.shape)
         return self.relu(h + x)
 
 
@@ -340,12 +349,14 @@ class Casual_Encoder(nn.Module):
         # self.pre_vq_conv = nn.Conv1d(self._num_hiddens, embedding_dim, 1, 1)
 
     def forward(self, x):
+        # print("[TEST] Casual_Encoder x shape: ", x.shape)
         h = self.project(x)
         h, _ = self._enc_1(h)
         h = self._down_1(h)
         h, _ = self._enc_2(h)
         h = self._down_2(h)
         h, _ = self._enc_3(h)
+        # print("[TEST] Casual_Encoder h shape: ", h.shape)
         # h = self.pre_vq_conv(h)
         return h
 
@@ -366,6 +377,7 @@ class Casual_Decoder(nn.Module):
         self.project = nn.Conv1d(self._num_hiddens//4, out_dim, 1, 1)
 
     def forward(self, h, pre_state=None):
+        # print("[TEST] Casual_Decoder h shape: ", h.shape)
         cur_state = []
         # h = self.aft_vq_conv(x)
         h, s = self._dec_1(h, pre_state[0] if pre_state is not None else None)
@@ -376,5 +388,7 @@ class Casual_Decoder(nn.Module):
         h = self._up_3(h)
         h, s = self._dec_3(h, pre_state[2] if pre_state is not None else None)
         cur_state.append(s)
+        # print("[TEST] Casual_Decoder h shape before project: ", h.shape)
         recon = self.project(h)
+        # print("[TEST] Casual_Decoder recon shape: ", recon.shape)
         return recon, cur_state

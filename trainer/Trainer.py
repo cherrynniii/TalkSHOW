@@ -71,7 +71,7 @@ class Trainer():
         # weights & biases
         if self.args.use_wandb:
             wandb.init(
-                project="TalkSHOW",
+                project="TalkSHOW-Body",
                 name=self.args.exp_name,
                 config=self.config.__dict__,
             )

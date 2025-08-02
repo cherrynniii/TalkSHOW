@@ -55,7 +55,7 @@ class TrainWrapper(TrainWrapperBaseClass):
     def init_optimizer(self):
         self.generator_optimizer = optim.SGD(
             filter(lambda p: p.requires_grad,self.generator.parameters()),
-            lr=0.001,
+            lr=0.00025,
             momentum=0.9,
             nesterov=False,
         )

@@ -1,6 +1,6 @@
 python -W ignore scripts/train.py \
 --save_dir experiments \
---exp_name original_body \
+--exp_name original_test \
 --use_wandb \
---speakers oliver seth conan chemistry \
+--speakers oliver \
 --config_file ./config/body_pixel.json

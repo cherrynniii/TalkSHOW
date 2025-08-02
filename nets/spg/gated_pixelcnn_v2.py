@@ -166,7 +166,6 @@ class GatedPixelCNN(nn.Module):
         print("x: ", x.shape)
         # 입력 인덱스를 임베딩으로 변환
         shp = x.size() + (-1,)
-        print("shp: ", shp.shape)
         x = self.embedding(x.view(-1)).view(shp)  # (B, H, W, C)
         print("x: ", x.shape)
         x = x.permute(0, 3, 1, 2)  # (B, C, W, W)

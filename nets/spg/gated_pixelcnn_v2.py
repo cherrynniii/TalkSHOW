@@ -189,6 +189,7 @@ class GatedPixelCNN(nn.Module):
 
     # Autoregressive하게 시퀀스 생성
     def generate(self, label, shape=(8, 8), batch_size=64, aud_feat=None, pre_latents=None, pre_audio=None):
+        print("=====generate=====")
         param = next(self.parameters())
 
         # PixelCNN이 생성해나갈 latent token map (인덱스 시퀀스), 즉 토큰 그리드
@@ -196,11 +197,16 @@ class GatedPixelCNN(nn.Module):
             (batch_size, *shape),
             dtype=torch.int64, device=param.device
         )
+        print("x: ", x.shape)
         if pre_latents is not None:
             x = torch.cat([pre_latents, x], dim=1)
+            print("x: ", x.shape)
             aud_feat = torch.cat([pre_audio, aud_feat], dim=2)
+            print("aud_feat: ", aud_feat.shape)
             h0 = pre_latents.shape[1]
+            print("h0: ", h0.shape)
             h = h0 + shape[0]
+            print("h: ", h.shape)
         else:
             h0 = 0
             h = shape[0]

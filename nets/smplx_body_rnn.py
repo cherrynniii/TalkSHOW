@@ -213,10 +213,10 @@ class TrainWrapper(TrainWrapperBaseClass):
         if self.audio:
             self.audioencoder_optimizer.zero_grad()
 
-        print("logits shape:", logits.shape)          # ex. [B, T, num_classes]
-        print("latents shape:", latents.shape)        # ex. [B, T]
-        print("latents min:", latents.min().item())   # should be >= 0
-        print("latents max:", latents.max().item())   # should be < logits.shape[-1]
+        # print("logits shape:", logits.shape)          # ex. [B, T, num_classes]
+        # print("latents shape:", latents.shape)        # ex. [B, T]
+        # print("latents min:", latents.min().item())   # should be >= 0
+        # print("latents max:", latents.max().item())   # should be < logits.shape[-1]
 
         loss = F.cross_entropy(logits.view(-1, logits.shape[-1]), latents.view(-1))
         loss.backward()

@@ -203,7 +203,7 @@ class TrainWrapper(TrainWrapperBaseClass):
             latents = latents.detach()
 
         if self.audio:
-            audio = self.audioencoder(aud[:, :].transpose(1, 2), frame_num=latents.shape[1]*4)
+            audio = self.audioencoder(aud[:, :].transpose(1, 2), frame_num=latents.shape[1]*4).unsqueeze(dim=-1).repeat(1, 1, 1, 2)
             logits = self.generator(latents[:, :], id, audio)
         else:
             logits = self.generator(latents, id)
@@ -213,16 +213,12 @@ class TrainWrapper(TrainWrapperBaseClass):
         if self.audio:
             self.audioencoder_optimizer.zero_grad()
 
-        # print("logits: ", logits.shape)
-        # print("latents: ", latents.shape)
+        print("logits shape:", logits.shape)          # ex. [B, T, num_classes]
+        print("latents shape:", latents.shape)        # ex. [B, T]
+        print("latents min:", latents.min().item())   # should be >= 0
+        print("latents max:", latents.max().item())   # should be < logits.shape[-1]
 
-        logits = logits.permute(0, 3, 1, 2)
-        latents = latents.permute(0, 2, 1)
-
-        # print("logits: ", logits.shape)
-        # print("latents: ", latents.shape)
-
-        loss = F.cross_entropy(logits.reshape(-1, logits.shape[-1]), latents.reshape(-1))
+        loss = F.cross_entropy(logits.view(-1, logits.shape[-1]), latents.view(-1))
         loss.backward()
 
         grad = torch.nn.utils.clip_grad_norm(self.generator.parameters(), self.config.Train.max_gradient_norm)
@@ -280,9 +276,7 @@ class TrainWrapper(TrainWrapperBaseClass):
             else:
                 if self.audio:
                     self.audioencoder.eval()
-                    print("aud_feat: ", aud_feat.shape)
-                    audio = self.audioencoder(aud_feat.transpose(1, 2), frame_num=frame)
-                    print("audio: ", audio.shape)
+                    audio = self.audioencoder(aud_feat.transpose(1, 2), frame_num=frame).unsqueeze(dim=-1).repeat(1, 1, 1, 2)
                     latents = self.generator.generate(id, shape=[audio.shape[2], 2], batch_size=B, aud_feat=audio)
                 else:
                     latents = self.generator.generate(id, shape=[aud_feat.shape[1]//4, 2], batch_size=B)
@@ -300,9 +294,7 @@ class TrainWrapper(TrainWrapperBaseClass):
         return output
 
     def infer(self, aud_feat, frame, id, B, pre_latents=None, pre_audio=None, pre_pose=None):
-        print("aud_feat: ", aud_feat.shape)
-        audio = self.audioencoder(aud_feat.transpose(1, 2), frame_num=frame)
-        print("audio: ", audio.shape)
+        audio = self.audioencoder(aud_feat.transpose(1, 2), frame_num=frame).unsqueeze(dim=-1).repeat(1, 1, 1, 2)
         latents = self.generator.generate(id, shape=[audio.shape[2], 2], batch_size=B, aud_feat=audio,
                                           pre_latents=pre_latents, pre_audio=pre_audio)
 
@@ -324,7 +316,7 @@ class TrainWrapper(TrainWrapperBaseClass):
         aud_feat = aud.permute(0, 2, 1)
         if self.audio:
             self.audioencoder.eval()
-            audio = self.audioencoder(aud_feat.transpose(1, 2), frame_num=frame_num)
+            audio = self.audioencoder(aud_feat.transpose(1, 2), frame_num=frame_num).unsqueeze(dim=-1).repeat(1, 1, 1, 2)
             latents = self.generator.generate(id, shape=[audio.shape[2], 2], batch_size=aud.shape[0], aud_feat=audio)
         else:
             latents = self.generator.generate(id, shape=[aud_feat.shape[1] // 4, 2], batch_size=aud.shape[0])

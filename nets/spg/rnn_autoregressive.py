@@ -29,6 +29,7 @@ class GatedPixelRNN(nn.Module):
         self.dp = nn.Dropout(0.1)
  
     def forward(self, x, label, aud=None):
+        aud = aud[:, :, :, 0]
         print("0 aud: ", aud.shape)     # [128, 256, 22]
         # x: (B, 2, T)
         B, H, T = x.shape
@@ -41,8 +42,6 @@ class GatedPixelRNN(nn.Module):
         print("4 cond: ", cond.shape)# [128, 1, 1, 256]
         x = x + cond  # Broadcast add
         print("5 x: ", x.shape)# [128, 22, 2, 256]
-        x = x.permute(0, 3, 1, 2)
-        print("5 x: ", x.shape)# [128, 256, 22, 2]
  
         if self.audio and aud is not None:
             # aud: (B, T, 256) → (B, 256, T) → (B, dim, T)
@@ -51,15 +50,16 @@ class GatedPixelRNN(nn.Module):
             print("9 aud_feat: ", aud_feat.shape)
             aud_feat = self.dp(aud_feat)
             print("10 aud_feat: ", aud_feat.shape)
+            aud_feat = aud_feat.permute(0, 2, 1)
             
-            print("11 x: ", x.shape)# [128, 256, 22, 2]
-            print("13 x[:, 0]: ", x[:, 0].shape)# [128, 22, 256]
-            print("12 x[:, 1]: ", x[:, 1].shape)# [128, 22, 256]
-            aud_body = self.fusion(torch.cat([x[:, 0], aud_feat], dim=-1))  # (B, T, D)
-            aud_hand = self.fusion(torch.cat([x[:, 1], aud_feat], dim=-1))
-            x = torch.stack([aud_body, aud_hand], dim=1)
+            print("11 x: ", x.shape)# [128, 22, 2, 256]
+            print("12 x[:, 1]: ", x[:, :, 1].shape)
+            print("13 x[:, 0]: ", x[:, :, 0].shape)
+            aud_body = self.fusion(torch.cat([x[:, :, 0], aud_feat], dim=-1))  # (B, T, D)
+            aud_hand = self.fusion(torch.cat([x[:, :, 1], aud_feat], dim=-1))
+            x = torch.stack([aud_body, aud_hand], dim=2)
  
-        out_body, out_hand = x[:, 0], x[:, 1]  # (B, T, D)
+        out_body, out_hand = x[:, :, 0], x[:, :, 1]  # (B, T, D)
         print("14 out_body: ", out_body.shape)# [128, 22, 256]
         print("15 out_hand: ", out_hand.shape)# [128, 22, 256]
 
@@ -68,14 +68,10 @@ class GatedPixelRNN(nn.Module):
             out_body, _ = layer(out_body)
         for layer in self.hand_rnns:
             out_hand, _ = layer(out_hand)
- 
-        logits_body = self.output_proj_body(out_body)  # (B, T, input_dim)
-        logits_hand = self.output_proj_hand(out_hand)  # (B, T, input_dim)
 
-        print("16 logits_body: ", logits_body.shape)# [128, 22, 2048]
-        print("17 logits_hand: ", logits_hand.shape)# [128, 22, 2048]
 
-        result = torch.stack([logits_body, logits_hand], dim=1)
+        result = torch.stack([out_body, out_hand], dim=2)# [128, 22, 2, 256]
+        result = result.permute(0, 3, 1, 2)
         print("18 result: ", result.shape)# [128, 2, 22, 2048]
 
         return result  # 기존에는 128, 256, 22, 2였음;;

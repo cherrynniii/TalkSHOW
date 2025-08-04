@@ -73,40 +73,40 @@ class GatedMaskedConv2d(nn.Module):
         if self.mask_type == 'A':
             self.make_causal()
 
-        print("b h: ", h.shape)
+        print("1 h: ", h.shape)
         h = self.class_cond_embedding(h.to(self.class_cond_embedding.weight.device))    # 클래스 조건 임베딩
-        print("b h: ", h.shape)
+        print("2 h: ", h.shape)
         h_vert = self.vert_stack(x_v)   # vertical 처리
-        print("b h_vert: ", h_vert.shape)
+        print("3 h_vert: ", h_vert.shape)
         h_vert = h_vert[:, :, :x_v.size(-2), :]     # 크기 맞춰줌
-        print("b h_vert: ", h_vert.shape)
+        print("4 h_vert: ", h_vert.shape)
         out_v = self.gate(h_vert + h[:, :, None, None])     # 조건 정보 더하고 게이팅
-        print("b out_v: ", out_v.shape)
+        print("5 out_v: ", out_v.shape)
 
         # horizontal 처리
         if self.bh_model:
             h_horiz = self.horiz_stack(x_h)
-            print("b h_vert: ", h_vert.shape)
+            print("6 h_horiz: ", h_horiz.shape)
             h_horiz = h_horiz[:, :, :, :x_h.size(-1)]
-            print("b h_vert: ", h_vert.shape)
+            print("7 h_horiz: ", h_horiz.shape)
             v2h = self.vert_to_horiz(h_vert)    # vertical 정보를 반영해 전달
-            print("b v2h: ", v2h.shape)
+            print("8 v2h: ", v2h.shape)
 
             out = self.gate(v2h + h_horiz + h[:, :, None, None])
-            print("b out: ", out.shape)
+            print("9 out: ", out.shape)
             if self.residual:
                 out_h = self.horiz_resid(out) + x_h
-                print("b out_h: ", out_h.shape)
+                print("10 out_h: ", out_h.shape)
             else:
                 out_h = self.horiz_resid(out)
-                print("b out_h: ", out_h.shape)
+                print("11 out_h: ", out_h.shape)
         else:
             if self.residual:
                 out_v = self.horiz_resid(out_v) + x_v
-                print("b out_v: ", out_v.shape)
+                print("12 out_v: ", out_v.shape)
             else:
                 out_v = self.horiz_resid(out_v)
-                print("b out_v: ", out_v.shape)
+                print("13 out_v: ", out_v.shape)
             out_h = out_v
 
         return out_v, out_h
@@ -163,37 +163,38 @@ class GatedPixelCNN(nn.Module):
 
     def forward(self, x, label, aud=None):
         print("==========GatedPixelCNN==========")
-        print("x: ", x.shape)
+        # print("aud: ", aud.shape)
+        # print("1 x: ", x.shape)
         # 입력 인덱스를 임베딩으로 변환
         shp = x.size() + (-1,)
         x = self.embedding(x.view(-1)).view(shp)  # (B, H, W, C)
-        print("x: ", x.shape)
+        # print("2 x: ", x.shape)
         x = x.permute(0, 3, 1, 2)  # (B, C, H, W)
-        print("x: ", x.shape)
+        # print("3 x: ", x.shape)
 
         x_v, x_h = (x, x)
-        print("x_v: ", x_v.shape)
-        print("x_h: ", x_h.shape)
+        # print("4 x_v: ", x_v.shape)
+        # print("5 x_h: ", x_h.shape)
         for i, layer in enumerate(self.layers):
             # 오디오 정보 추가
             if i == 1 and self.audio is True:
                 aud = self.embedding_aud(aud)
-                print("aud: ", aud.shape)
+                # print("6 aud: ", aud.shape)
                 a = torch.ones(aud.shape[-2]).to(aud.device)
-                print("a: ", a.shape)
+                # print("7 a: ", a.shape)
                 a = self.dp(a)
-                print("a: ", a.shape)
+                # print("8 a: ", a.shape)
                 aud = (aud.transpose(-1, -2) * a).transpose(-1, -2)
-                print("aud: ", aud.shape)
+                # print("9 aud: ", aud.shape)
                 x_v = self.fusion_v(torch.cat([x_v, aud], dim=1))
-                print("x_v: ", x_v.shape)
+                # print("10 x_v: ", x_v.shape)
                 if self.bh_model:
                     x_h = self.fusion_h(torch.cat([x_h, aud], dim=1))
-                    print("x_h: ", x_h.shape)
+                    # print("11 x_h: ", x_h.shape)
             # PixelCNN 블록 적용
             x_v, x_h = layer(x_v, x_h, label)
-            print("x_v: ", x_v.shape)
-            print("x_h: ", x_h.shape)
+            # print("12 x_v: ", x_v.shape)
+            # print("13 x_h: ", x_h.shape)
 
         if self.bh_model:
             return self.output_conv(x_h)

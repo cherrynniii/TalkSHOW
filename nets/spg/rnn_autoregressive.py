@@ -26,6 +26,14 @@ class GatedPixelRNN(nn.Module):
  
         self.output_proj_body = nn.Linear(dim, input_dim)
         self.output_proj_hand = nn.Linear(dim, input_dim)
+
+        # Add the output layer
+        self.output_conv = nn.Sequential(
+            nn.Conv2d(dim, 512, 1),
+            nn.ReLU(True),
+            nn.Conv2d(512, input_dim, 1)
+        )
+
         self.dp = nn.Dropout(0.1)
  
     def forward(self, x, label, aud=None):
@@ -72,7 +80,8 @@ class GatedPixelRNN(nn.Module):
 
         result = torch.stack([out_body, out_hand], dim=2)# [128, 22, 2, 256]
         result = result.permute(0, 3, 1, 2)
-        print("18 result: ", result.shape)# [128, 2, 22, 2048]
+        print("18 result: ", result.shape)
+        result = self.output_conv(result)
 
         return result  # 기존에는 128, 256, 22, 2였음;;
  

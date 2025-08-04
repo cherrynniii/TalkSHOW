@@ -28,6 +28,16 @@ def init_model(model_name, args, config):
             args,
             config,
         )
+    elif model_name == 's2g_body_rnn':
+        generator = s2g_body_rnn(
+            args,
+            config,
+        )
+    elif model_name == 's2g_body_rnn2':
+        generator = s2g_body_rnn2(
+            args,
+            config,
+        )
     else:
         raise ValueError
     return generator

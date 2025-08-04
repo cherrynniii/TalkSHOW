@@ -29,36 +29,41 @@ class GatedPixelRNN(nn.Module):
         self.dp = nn.Dropout(0.1)
  
     def forward(self, x, label, aud=None):
-        print("0 aud: ", aud.shape)
+        print("0 aud: ", aud.shape)     # [128, 256, 22]
         # x: (B, 2, T)
         B, H, T = x.shape
         label = label.to(self.class_cond_embedding.weight.device)
-        # print("x: ", x.shape)
-        x = self.embedding(x.permute(0, 2, 1))  # (B, 2, T, D)
+        print("1 label: ", label.shape)# [128]
+        print("2 x: ", x.shape)# [128, 22, 2]
+        x = self.embedding(x)  # (B, 2, T, D)
+        print("3 x: ", x.shape)# [128, 22, 2, 256]
         cond = self.class_cond_embedding(label).unsqueeze(1).unsqueeze(1)  # (B, 1, 1, D)
+        print("4 cond: ", cond.shape)# [128, 1, 1, 256]
         x = x + cond  # Broadcast add
-        print("x: ", x.shape)
+        print("5 x: ", x.shape)# [128, 22, 2, 256]
+        x = x.permute(0, 3, 1, 2)
+        print("5 x: ", x.shape)# [128, 256, 22, 2]
  
         if self.audio and aud is not None:
             # aud: (B, T, 256) → (B, 256, T) → (B, dim, T)
-            print("x: ", x.shape)
-            print("aud: ", aud.shape)
-            aud_feat = self.embedding_aud(aud).permute(0, 2, 1)  # (B, T, dim)
-            print("aud_feat: ", aud_feat.shape)
-            # print("aud_feat: ", aud_feat.shape)
+            print("8 aud: ", aud.shape)# [128, 256, 22]
+            aud_feat = self.embedding_aud(aud)
+            print("9 aud_feat: ", aud_feat.shape)
             aud_feat = self.dp(aud_feat)
-            # print("aud_feat: ", aud_feat.shape)
+            print("10 aud_feat: ", aud_feat.shape)
             
-            x = x.permute(0, 2, 1, 3)
-            print("x[]: ", x[:, 1].shape)
-            print("x[]: ", x[:, 0].shape)
-            print("aud_feat: ", aud_feat.shape)
+            print("11 x: ", x.shape)# [128, 256, 22, 2]
+            print("13 x[:, 0]: ", x[:, 0].shape)# [128, 22, 256]
+            print("12 x[:, 1]: ", x[:, 1].shape)# [128, 22, 256]
             aud_body = self.fusion(torch.cat([x[:, 0], aud_feat], dim=-1))  # (B, T, D)
             aud_hand = self.fusion(torch.cat([x[:, 1], aud_feat], dim=-1))
             x = torch.stack([aud_body, aud_hand], dim=1)
  
         out_body, out_hand = x[:, 0], x[:, 1]  # (B, T, D)
- 
+        print("14 out_body: ", out_body.shape)# [128, 22, 256]
+        print("15 out_hand: ", out_hand.shape)# [128, 22, 256]
+
+        # rnn
         for layer in self.body_rnns:
             out_body, _ = layer(out_body)
         for layer in self.hand_rnns:
@@ -66,7 +71,14 @@ class GatedPixelRNN(nn.Module):
  
         logits_body = self.output_proj_body(out_body)  # (B, T, input_dim)
         logits_hand = self.output_proj_hand(out_hand)  # (B, T, input_dim)
-        return torch.stack([logits_body, logits_hand], dim=1)  # (B, 2, T, input_dim)
+
+        print("16 logits_body: ", logits_body.shape)# [128, 22, 2048]
+        print("17 logits_hand: ", logits_hand.shape)# [128, 22, 2048]
+
+        result = torch.stack([logits_body, logits_hand], dim=1)
+        print("18 result: ", result.shape)# [128, 2, 22, 2048]
+
+        return result  # 기존에는 128, 256, 22, 2였음;;
  
     def generate(self, label, shape=(2, 64), batch_size=64, aud_feat=None, pre_latents=None, pre_audio=None):
         print("00 audio", aud_feat.shape)

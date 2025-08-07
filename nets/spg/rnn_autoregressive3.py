@@ -35,7 +35,7 @@ class GatedPixelRNN(nn.Module):
     def forward(self, x, label, aud=None):
         # x: (B, 2, T)
         B, H, T = x.shape
-        print("x: ", x.shape)
+        # print("x: ", x.shape)
         x = self.embedding(x.permute(0, 2, 1))  # (B, 2, T, D)
         cond = self.class_cond_embedding(label).unsqueeze(1).unsqueeze(1)  # (B, 1, 1, D)
         x = x + cond  # Broadcast add
@@ -51,14 +51,17 @@ class GatedPixelRNN(nn.Module):
             aud_body = self.fusion(torch.cat([x[:, 0], aud_feat], dim=-1))  # (B, T, D)
             aud_hand = self.fusion(torch.cat([x[:, 1], aud_feat], dim=-1))
             x = torch.stack([aud_body, aud_hand], dim=1)
-            print("111 x: ", x.shape)
+            # print("111 x: ", x.shape)
  
         out_body, out_hand = x[:, 0], x[:, 1]  # (B, T, D)
  
         for i in range(len(self.body_rnns)):
+            in_body = out_body
+            in_hand = out_hand
+
             out_body, _ = self.body_rnns[i](out_body)
             out_hand, _ = self.hand_rnns[i](out_hand)
-            print("111 out_body: ", out_body.shape)
+            # print("111 out_body: ", out_body.shape)
 
             mod_body = self.cross_body(out_hand)
             mod_hand = self.cross_hand(out_body)
@@ -66,6 +69,10 @@ class GatedPixelRNN(nn.Module):
 
             out_body = out_body + mod_body
             out_hand = out_hand + mod_hand
+
+            # residual
+            out_body = out_body + in_body
+            out_hand = out_hand + in_hand
  
         logits_body = self.output_proj_body(out_body)  # (B, T, input_dim)
         logits_hand = self.output_proj_hand(out_hand)  # (B, T, input_dim)

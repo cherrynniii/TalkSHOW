@@ -8,7 +8,7 @@ sys.path.append(os.getcwd())
 
 from nets.layers import *
 from nets.base import TrainWrapperBaseClass
-from nets.spg.rnn_autoregressive2 import GatedPixelRNN as pixelrnn
+from nets.spg.rnn_autoregressive3 import GatedPixelRNN as pixelrnn
 from nets.spg.vqvae_1d import VQVAE as s2g_body, Wav2VecEncoder
 from nets.spg.vqvae_1d import AudioEncoder
 from nets.utils import parse_audio, denormalize

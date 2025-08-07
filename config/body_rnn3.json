@@ -33,7 +33,7 @@
   },
   "Model": {
     "model_type": "body",
-    "model_name": "s2g_body_rnn",
+    "model_name": "s2g_body_rnn3",
     "composition": true,
     "code_num": 2048,
     "bh_model": true,
@@ -47,11 +47,11 @@
     "num_workers": 0
   },
   "Train": {
-    "epochs": 200,
+    "epochs": 100,
     "max_gradient_norm": 5,
     "learning_rate": {
-      "generator_learning_rate": 0.5e-4,
-      "discriminator_learning_rate": 0.5e-4
+      "generator_learning_rate": 1e-4,
+      "discriminator_learning_rate": 1e-4
     }
   },
   "Log": {

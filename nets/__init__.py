@@ -7,5 +7,7 @@ from .LS3DCG import TrainWrapper as LS3DCG
 from .base import TrainWrapperBaseClass
 from .smplx_body_rnn2 import TrainWrapper as s2g_body_rnn2
 from .smplx_body_rnn3 import TrainWrapper as s2g_body_rnn3
+from .smplx_body_rnn_re import TrainWrapper as s2g_body_rnn_re
+from .smplx_body_rnn_re2 import TrainWrapper as s2g_body_rnn_re2
 
 from .utils import normalize, denormalize

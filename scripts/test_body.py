@@ -2,7 +2,7 @@ import os
 import sys
 
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '3'
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 sys.path.append(os.getcwd())
 
 from tqdm import tqdm
@@ -28,6 +28,11 @@ from torch.utils import data
 from data_utils.get_j import to3d, get_joints
 
 
+print(f"CUDA available? {torch.cuda.is_available()}")
+print(f"Current device: {torch.cuda.current_device() if torch.cuda.is_available() else 'CPU'}")
+
+
+
 def init_model(model_name, model_path, args, config):
     if model_name == 's2g_face':
         generator = s2g_face(
@@ -46,6 +51,16 @@ def init_model(model_name, model_path, args, config):
         )
     elif model_name == 's2g_body_ae':
         generator = s2g_body_ae(
+            args,
+            config,
+        )
+    elif model_name == 's2g_body_rnn_re':
+        generator = s2g_body_rnn_re(
+            args,
+            config,
+        )
+    elif model_name == 's2g_body_rnn_re2':
+        generator = s2g_body_rnn_re2(
             args,
             config,
         )

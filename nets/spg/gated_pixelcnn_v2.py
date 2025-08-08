@@ -145,7 +145,6 @@ class GatedPixelCNN(nn.Module):
             x_v, x_h = layer(x_v, x_h, label)
 
         if self.bh_model:
-            print("return: ", self.output_conv(x_h).shape)
             return self.output_conv(x_h)
         else:
             return self.output_conv(x_v)
@@ -175,5 +174,4 @@ class GatedPixelCNN(nn.Module):
                 x.data[:, i, j].copy_(
                     probs.multinomial(1).squeeze().data
                 )
-        print("return: ", x[:, h0:h].shape)
         return x[:, h0:h]

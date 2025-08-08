@@ -53,6 +53,16 @@ def init_model(model_name, model_path, args, config):
             args,
             config,
         )
+    elif model_name == 's2g_body_rnn_re':
+        generator = s2g_body_rnn_re(
+            args,
+            config,
+        )
+    elif model_name == 's2g_body_rnn_re2':
+        generator = s2g_body_rnn_re2(
+            args,
+            config,
+        )
     else:
         raise NotImplementedError
 

@@ -4,5 +4,5 @@ python -W ignore scripts/test_body.py \
 --speakers oliver seth conan chemistry \
 --config_file ./config/body_pixel.json \
 --body_model_name s2g_body_pixel \
---body_model_path ./experiments/2022-11-02-smplx_S2G-body-pixel-3d/ckpt-99.pth \
+--body_model_path ./experiments/2025-08-01-original_body-body-pixel2/ckpt-99.pth \
 --infer

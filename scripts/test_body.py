@@ -64,6 +64,11 @@ def init_model(model_name, model_path, args, config):
             args,
             config,
         )
+    elif model_name == 's2g_body_transformer':
+        generator = s2g_body_transformer(
+            args,
+            config,
+        )
     else:
         raise NotImplementedError
 

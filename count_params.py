@@ -1,6 +1,6 @@
-from nets.spg.rnn_autoregressive2 import GatedPixelRNN
+from nets.spg.transformer_autoregressive import GatedPixelTransformer
  
-model = GatedPixelRNN(
+model = GatedPixelTransformer(
     input_dim=2048,
     dim=256,
     n_layers=15,

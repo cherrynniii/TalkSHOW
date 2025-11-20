@@ -35,3 +35,8 @@ __pycache__/
 
 # 기타 캐시
 *.log
+
+# dataset
+TalkingWithHands32M
+
+vqvae_data
